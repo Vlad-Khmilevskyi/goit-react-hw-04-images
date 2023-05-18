@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import { AppStyled } from './App.module';
 import { fetchImages } from './API/service';
@@ -9,86 +9,81 @@ import Button from './Button/Button';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Modal from './Modal/Modal';
 
-class App extends Component {
-  state = {
-    images: [],
-    query: '',
-    page: 1,
-    isLoading: false,
-    totalHits: 0,
-    showModal: false,
-    activeImage: null,
-  };
+function App() {
+  const [images, setImages] = useState([]);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalHits, setTotalHits] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const [activeImage, setActiveImage] = useState(null);
 
-  componentDidUpdate(prevProps, prevState) {
-    const { query, page } = this.state;
+  useEffect(() => {
+    if (!query) return;
 
-    if (prevState.query !== query || prevState.page !== page) {
-      this.setState({ isLoading: true });
-      fetchImages(query, page)
-        .then(({ hits, totalHits }) => {
-          if (!totalHits) {
-            console.log(totalHits, hits);
-            toast.error('There are no images for your request');
-            return;
-          }
-          const results = hits.map(
-            ({ tags, id, webformatURL, largeImageURL }) => ({
-              tags,
-              id,
-              smallImage: webformatURL,
-              largeImage: largeImageURL,
-            })
-          );
-
-          this.setState(({ images }) => {
-            return { images: [...images, ...results], totalHits };
-          });
-        })
-        .catch(error => {
+    setIsLoading(true);
+    fetchImages(query, page)
+      .then(({ hits, totalHits }) => {
+        if (!totalHits) {
+          console.log(totalHits, hits);
           toast.error('There are no images for your request');
-        })
-        .finally(() => this.setState({ isLoading: false }));
-    }
-  }
+          return;
+        }
+        const results = hits.map(
+          ({ tags, id, webformatURL, largeImageURL }) => ({
+            tags,
+            id,
+            smallImage: webformatURL,
+            largeImage: largeImageURL,
+          })
+        );
 
-  submitHandler = query => {
+        setImages(prevImages => [...prevImages, ...results]);
+        setTotalHits(totalHits);
+      })
+      .catch(error => {
+        toast.error('There was an error fetching images');
+      })
+      .finally(() => setIsLoading(false));
+  }, [query, page]);
+
+  const submitHandler = query => {
     window.scrollTo({ behavior: 'smooth', top: 0 });
-    this.setState({
-      query,
-      images: [],
-      page: 1,
-      totalHits: 0,
-    });
+
+    setQuery(query);
+    setImages([]);
+    setPage(1);
+    setTotalHits(0);
   };
 
-  onLoadMoreButton = () => {
-    this.setState(({ page }) => ({
-      page: page + 1,
-    }));
+  const onLoadMoreButton = () => {
+    setPage(prevtPage => prevtPage + 1);
   };
 
-  onImageClick = (activeImage = null) => {
-    this.setState({ activeImage });
+  const onImageClick = activeImage => {
+    setActiveImage(activeImage);
+    setShowModal(true);
   };
 
-  render() {
-    const { isLoading, images, totalHits, activeImage } = this.state;
-    return (
-      <AppStyled>
-        <Searchbar onSubmit={this.submitHandler} />
-        <ImageGallery images={images} openModal={this.onImageClick} />
-        {totalHits > images.length && !isLoading && (
-          <Button onLoadMoreButton={this.onLoadMoreButton} />
-        )}
-        {isLoading && <ColorRing wrapperStyle={{ margin: '0 auto' }} />}
-        {activeImage && (
-          <Modal image={activeImage} onClose={this.onImageClick}></Modal>
-        )}
-        <ToastContainer />
-      </AppStyled>
-    );
-  }
+  const closeModal = () => {
+    setShowModal(false);
+    setActiveImage(null);
+  };
+
+  return (
+    <AppStyled>
+      <Searchbar onSubmit={submitHandler} />
+      <ImageGallery images={images} openModal={onImageClick} />
+      {totalHits > images.length && !isLoading && (
+        <Button onLoadMoreButton={onLoadMoreButton} />
+      )}
+      {isLoading && <ColorRing wrapperStyle={{ margin: '0 auto' }} />}
+      {showModal && activeImage && (
+        <Modal image={activeImage} onClose={closeModal}></Modal>
+      )}
+      <ToastContainer />
+    </AppStyled>
+  );
 }
 
 export default App;

@@ -1,51 +1,49 @@
-import React, { Component } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
 import PropTypes from 'prop-types';
 import { Form, FormButton, Label, Input, Header } from './Searchbar.module';
 import { FcSearch } from 'react-icons/fc';
 
-class Searchbar extends Component {
-  static propTypes = {
-    onSubmit: PropTypes.func.isRequired,
+function Searchbar({ onSubmit }) {
+  const [query, setQuery] = useState('');
+
+  const onChange = event => {
+    setQuery(event.currentTarget.value);
   };
 
-  state = { query: '' };
-
-  onChange = event => {
-    this.setState({ query: event.currentTarget.value });
-  };
-
-  onSubmit = event => {
+  const handleSubmit = event => {
     event.preventDefault();
 
-    if (!this.state.query.trim()) {
+    if (!query.trim()) {
       return toast.warning('Please type something');
     }
 
-    this.props.onSubmit(this.state.query);
-    this.setState({ query: '' });
+    onSubmit(query);
+    setQuery('');
   };
 
-  render() {
-    return (
-      <Header>
-        <Form onSubmit={this.onSubmit}>
-          <FormButton type="submit">
-            <Label>Search</Label>
-            <FcSearch size={20} />
-          </FormButton>
-          <Input
-            type="text"
-            autoComplete="off"
-            autoFocus
-            placeholder="Search images and photos"
-            value={this.state.query}
-            onChange={this.onChange}
-          />
-        </Form>
-      </Header>
-    );
-  }
+  return (
+    <Header>
+      <Form onSubmit={handleSubmit}>
+        <FormButton type="submit">
+          <Label>Search</Label>
+          <FcSearch size={20} />
+        </FormButton>
+        <Input
+          type="text"
+          autoComplete="off"
+          autoFocus
+          placeholder="Search images and photos"
+          value={query}
+          onChange={onChange}
+        />
+      </Form>
+    </Header>
+  );
 }
+
+Searchbar.propTypes = {
+  onSubmit: PropTypes.func.isRequired,
+};
 
 export default Searchbar;
